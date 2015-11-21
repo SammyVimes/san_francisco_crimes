@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
+import operator
 import os
+from PIL.ImageFont import truetype
 import matplotlib.pyplot as plt
 import matplotlib.pylab as pylab
 import numpy as np
@@ -10,6 +12,7 @@ from data.input_reader import load
 import math
 from PIL import Image
 from PIL import ImageDraw
+from translator.yandex import translate
 
 __author__ = 'Semyon'
 
@@ -33,8 +36,11 @@ def lon2x(lon):
     return deg2rad(lon) * earth_radius
 
 
-width = 1038  # хардкод ширины
-height = 1095  # хардкод высоты
+cur_dir = os.path.dirname(os.path.realpath('__file__'))
+filename = os.path.join(cur_dir, '../data/map.png')
+image = Image.open(filename)
+
+width, height = image.size
 
 # левая верхняя точка
 lon_l = -122.51456
@@ -67,7 +73,7 @@ def calc_on_map_point(lon, lat):
     return (img_x, img_y)
 
 
-rad = 5
+rad = 2
 
 
 def point_to_ellipse(p):
@@ -77,20 +83,78 @@ def point_to_ellipse(p):
 x = []  # longitudes
 y = []  # latitudes
 
+
+print("Загружаем датасет")
 df = load("../data/train.csv.zip")
+print("Загружено")
 
-cur_dir = os.path.dirname(os.path.realpath('__file__'))
-filename = os.path.join(cur_dir, '../data/map.png')
-image = Image.open(filename)
-draw = ImageDraw.Draw(image)
+i = Image.new("RGBA", (width, height), 'white')
+d = ImageDraw.Draw(i, "RGBA")
 
-for i in range(100):
+i.paste(image)
+# draw = ImageDraw.Draw(image, "RGBA")
+draw = d
+image = i
+
+
+def top_crimes(df, items=0):
+    df.columns = df.columns.map(operator.methodcaller('lower'))
+    by_col = df.groupby("category")
+    col_freq = by_col.size()
+    col_freq.index = col_freq.index.map(string.capwords)
+    col_freq.sort(ascending=False, inplace=True)
+    cols = [col for col in col_freq.index]
+    cols = cols[0:1] + cols[3:]
+    return cols[:items]
+
+
+print("Достаём топ-5 преступлений")
+top = top_crimes(df, items=5)
+
+opacity = 220
+# color_list = ['red', 'green', 'blue', 'purple', 'orange', 'pink', 'black', 'brown']
+color_list = [(255, 0, 0, opacity), (0, 255, 0, opacity), (0, 0, 255, opacity), (255, 127, 80, opacity),
+              (139, 0, 139, opacity), (255, 105, 180, opacity), (0, 0, 0, opacity),
+              (188, 143, 143, opacity)]
+
+colors_map = {top[i]: color_list[i] for i in range(len(top))}
+
+print("Начинаем рисовать на карте")
+length = df.shape[0]
+last_percent = -1
+for i in range(length):
+    percent = int((i / length) * 100)
+    if percent > last_percent:
+        last_percent = percent
+        print(str(percent) + "%")
+        print(str(i) + " строка")
     first_row = df.ix[i]
-    lon = first_row["X"]
-    lat = first_row["Y"]
-    p = calc_on_map_point(lon, lat)
-    draw.ellipse(point_to_ellipse(p), fill='blue', outline='blue')
+    category = string.capwords(first_row["category"])
+    if category in top:
+        lon = first_row["x"]
+        lat = first_row["y"]
+        p = calc_on_map_point(lon, lat)
+        color = colors_map[category]
+        draw.ellipse(point_to_ellipse(p), fill=color, outline=color)
 
 
-#draw.point(p, 'red')
-image.save('test.png')
+# рисуем легенду
+
+
+lineheight = 35
+padding = 20
+space = 20
+legend_rad = 10
+font = truetype(font="times.ttf", size=15)
+legend_right = width / 3
+legend_down = (len(top)) * lineheight + padding
+draw.rectangle((0, 0, legend_right, legend_down), 'white', 'black')
+for i in range(len(top)):
+    x = padding
+    y = i * lineheight + padding
+    category = top[i]
+    color = colors_map[category]
+    draw.ellipse((x, y, x + (2 * legend_rad), y + (2 * legend_rad)), fill=color, outline='black')
+    draw.text((x + (2 * legend_rad) + space, y), translate(category, "en", "ru"), fill='black', font=font)
+
+image.save('test.png', 'PNG')
