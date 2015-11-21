@@ -1,17 +1,11 @@
 # -*- coding: utf-8 -*-
-import os
-import io
-import codecs
-import pandas as pd
-import numpy as np
-import string
 import operator
-from zipfile import ZipFile, is_zipfile
+from string import capwords
 
+import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
-from contextlib import contextmanager
-from string import capwords
+
 from data.input_reader import load
 from translator.yandex import translate
 

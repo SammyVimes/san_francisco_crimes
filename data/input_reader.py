@@ -1,12 +1,9 @@
 import os
 import io
-import codecs
-import pandas as pd
-import numpy as np
-import string
-import operator
 from zipfile import ZipFile, is_zipfile
 from contextlib import contextmanager
+
+import pandas as pd
 
 __author__ = 'Semyon'
 

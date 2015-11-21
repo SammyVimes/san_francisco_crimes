@@ -1,17 +1,14 @@
 # -*- coding: utf-8 -*-
 import operator
 import os
-from PIL.ImageFont import truetype
-import matplotlib.pyplot as plt
-import matplotlib.pylab as pylab
-import numpy as np
 import string
-import matplotlib.cm as cm
-import matplotlib as mpl
-from data.input_reader import load
 import math
+
+from PIL.ImageFont import truetype
 from PIL import Image
 from PIL import ImageDraw
+
+from data.input_reader import load
 from translator.yandex import translate
 
 __author__ = 'Semyon'
