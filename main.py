@@ -29,7 +29,7 @@ train__train_true = train_true[:sz]
 train__test_features = train_features[sz:, :]
 train__test_true = train_true[sz:]
 
-model = xgb.XGBClassifier(max_depth=50, n_estimators=10, learning_rate=0.05, nthread=4, subsample=0.7, colsample_bytree=0.7, silent=True)
+model = xgb.XGBClassifier(max_depth=80, n_estimators=30, learning_rate=0.05, nthread=4, subsample=0.7, colsample_bytree=0.7, silent=True)
 print("Учимся")
 model.fit(train__train_features, train__train_true)
 
