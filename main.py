@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import os
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import classification_report
@@ -14,38 +15,41 @@ from data import input_reader
 import pandas as pd
 
 
-print("Читаем трейнсет")
+print("Р§РёС‚Р°РµРј С‚СЂРµР№РЅСЃРµС‚")
 train_csv = input_reader.load("data/clean_train.csv")
-train_features = train_csv.as_matrix()
 train_true = train_csv['category'].tolist()
+train_csv = train_csv.drop('category', 1)
+train_features = train_csv.as_matrix()
 
-train__train_features = train_features[:600000, :]
-train__train_true = train_true[:600000]
+sz = 600000
 
-train__test_features = train_features[600000:, :]
-train__test_true = train_true[600000:]
+train__train_features = train_features[:sz, :]
+train__train_true = train_true[:sz]
 
-model = xgb.XGBClassifier(max_depth=100, n_estimators=100, learning_rate=0.05, nthread=4, silent=True)
-print("Учимся")
+train__test_features = train_features[sz:, :]
+train__test_true = train_true[sz:]
+
+model = xgb.XGBClassifier(max_depth=50, n_estimators=10, learning_rate=0.05, nthread=4, subsample=0.7, colsample_bytree=0.7, silent=True)
+print("РЈС‡РёРјСЃСЏ")
 model.fit(train__train_features, train__train_true)
 
-print("Оцениваем на части трейна")
+print("РћС†РµРЅРёРІР°РµРј РЅР° С‡Р°СЃС‚Рё С‚СЂРµР№РЅР°")
 score = model.score(train__test_features, train__test_true)
-print("Результат =", score)
+print("Р РµР·СѓР»СЊС‚Р°С‚ =", score)
 
-print("Учимся на полном сете")
+print("РЈС‡РёРјСЃСЏ РЅР° РїРѕР»РЅРѕРј СЃРµС‚Рµ")
 model.fit(train_features, train_true)
 
 
-print("Читаем тест сет")
+print("Р§РёС‚Р°РµРј С‚РµСЃС‚ СЃРµС‚")
 test_csv = input_reader.load("data/clean_test.csv")
 test_features = test_csv.as_matrix()
-print("Предсказываем вероятности")
+print("РџСЂРµРґСЃРєР°Р·С‹РІР°РµРј РІРµСЂРѕСЏС‚РЅРѕСЃС‚Рё")
 predicted_probas = model.predict_proba(test_features)
 
 
 
-#выводим классы
+#РІС‹РІРѕРґРёРј РєР»Р°СЃСЃС‹
 cur_dir = os.path.dirname(os.path.realpath('__file__'))
 filename = os.path.join(cur_dir, "data/clean_train.csv_classes")
 clz_map = pd.read_csv(filename, index_col=False)
@@ -55,6 +59,7 @@ cols = [r[str(c)].upper() for c in model.classes_]
 
 print(cols)
 
-print("Пишем результат!")
+print("РџРёС€РµРј СЂРµР·СѓР»СЊС‚Р°С‚")
 res_df = pd.DataFrame(predicted_probas, columns=cols)
 res_df.to_csv("data/res.csv", index=True, index_label="Id")
+print("Р“РѕС‚РѕРІРѕ!")
