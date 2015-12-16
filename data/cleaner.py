@@ -3,6 +3,7 @@ import string
 import pandas as pd
 from data.input_reader import load
 from dateutil.parser import parse
+import json
 
 __author__ = 'Semyon'
 
@@ -10,10 +11,20 @@ day_of_week_map = {}
 
 category_map = {}
 
+weather_type_map = {}
 
-def clean_train_set(filename, output_filename, log=False):
+
+def clean_train_set(filename, output_filename, weather_json, log=False):
+
+    weather_data = None
+
+    with open(weather_json, 'r') as myfile:
+        data = myfile.read().replace('\n', '')
+        weather_data = json.loads(data)
+
     last_day_of_week = -1
     last_category = -1
+    last_weather_type = -1
 
     initial_df = load(filename)
     length = initial_df.shape[0]
@@ -45,12 +56,20 @@ def clean_train_set(filename, output_filename, log=False):
         if day_of_week not in day_of_week_map:
             last_day_of_week += 1
             day_of_week_map[day_of_week] = last_day_of_week
+
+        weather_dic = weather_data[str(year)][str(month)][str(day)]
+        weather_type = weather_dic['weather']
+        if weather_type not in weather_type_map:
+            last_weather_type += 1
+            weather_type_map[weather_type] = last_weather_type
+        wt = weather_type_map[weather_type]
+        temperature = weather_dic['temperature']
         day_of_week = day_of_week_map[day_of_week]
         lon = row['X']
         lat = row['Y']
-        x = [day, month, year, hour, minute, day_of_week, lon, lat, category]
+        x = [day, month, year, hour, minute, day_of_week, lon, lat, wt, temperature, category]
         arr.append(x)
-    columns = ['day', 'month', 'year', 'hour', 'minute', 'day_of_week', 'lon', 'lat', 'category']
+    columns = ['day', 'month', 'year', 'hour', 'minute', 'day_of_week', 'lon', 'lat', 'weather', 'temperature', 'category']
     new_df = pd.DataFrame(arr, columns=columns)
     new_df.to_csv(output_filename, index=False)
 
@@ -67,10 +86,23 @@ def clean_train_set(filename, output_filename, log=False):
     clz_df = pd.DataFrame(clz)
     clz_df.to_csv(output_filename + '_days', index=False)
 
-    return day_of_week_map
+    clz = {}
+    for v in weather_type_map:
+        clz[str(weather_type_map[v])] = [v]
+    clz_df = pd.DataFrame(clz)
+    clz_df.to_csv(output_filename + '_weather', index=False)
+
+    return day_of_week_map, weather_type_map
 
 
-def clean_test_set(filename, output_filename, day_of_week_map, log=False):
+def clean_test_set(filename, output_filename, day_of_week_map, weather_type_map, weather_json,  log=False):
+
+    weather_data = None
+
+    with open(weather_json, 'r') as myfile:
+        data = myfile.read().replace('\n', '')
+        weather_data = json.loads(data)
+
     initial_df = load(filename)
     length = initial_df.shape[0]
     arr = []
@@ -92,12 +124,17 @@ def clean_test_set(filename, output_filename, day_of_week_map, log=False):
         hour = d.hour
         minute = d.minute
 
+        weather_dic = weather_data[str(year)][str(month)][str(day)]
+        weather_type = weather_dic['weather']
+        wt = weather_type_map[weather_type]
+        temperature = weather_dic['temperature']
+
         day_of_week = string.capwords(row['DayOfWeek'])
         day_of_week = day_of_week_map[day_of_week]
         lon = row['X']
         lat = row['Y']
-        x = [day, month, year, hour, minute, day_of_week, lon, lat]
+        x = [day, month, year, hour, minute, day_of_week, lon, lat, wt, temperature]
         arr.append(x)
-    columns = ['day', 'month', 'year', 'hour', 'minute', 'day_of_week', 'lon', 'lat']
+    columns = ['day', 'month', 'year', 'hour', 'minute', 'day_of_week', 'lon', 'lat', 'weather', 'temperature']
     new_df = pd.DataFrame(arr, columns=columns)
     new_df.to_csv(output_filename, index=False)
